@@ -92,10 +92,10 @@ The decoder backend is selected at build time:
 
 ```bash
 # Use jpeg-compressor (jpgd) backend
-bazelisk build //aifo/simpletiff:simpletiff --define=jpeg_decoder=jpgd
+bazelisk build @simpletiff//:simpletiff --define=jpeg_decoder=jpgd
 
 # Use libjpeg-turbo backend (default)
-bazelisk build //aifo/simpletiff:simpletiff
+bazelisk build @simpletiff//:simpletiff
 ```
 
 The jpgd backend is particularly useful for WebAssembly builds where libjpeg-turbo gives broken outputs.
@@ -106,10 +106,10 @@ The jpgd backend is particularly useful for WebAssembly builds where libjpeg-tur
 
 ```bash
 # Build library
-bazelisk build //aifo/simpletiff:simpletiff
+bazelisk build @simpletiff//:simpletiff
 
 # Build and run tests
-bazelisk test //aifo/simpletiff:all
+bazelisk test @simpletiff//:all
 
 # Build example
 bazelisk build //aifo/simpletiff/examples:example_read

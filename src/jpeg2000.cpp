@@ -664,7 +664,7 @@ Result<void> PackInterleaved(const opj_image_t& image, bool file_big_endian,
 
 }  // namespace
 
-// Test-only entry point (used by //aifo/simpletiff:jpeg2000_sycc_pack_test).
+// Test-only entry point (used by @simpletiff//:jpeg2000_sycc_pack_test).
 // This intentionally lives in the production translation unit so we can keep
 // the packer implementation private while still regression-testing subtle edge
 // behavior.
