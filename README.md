@@ -106,19 +106,19 @@ The jpgd backend is particularly useful for WebAssembly builds where libjpeg-tur
 
 ```bash
 # Build library
-bazelisk build @simpletiff//:simpletiff
+bazelisk build //:simpletiff
 
 # Build and run tests
-bazelisk test @simpletiff//:all
+bazelisk test //:all
 
 # Build example
-bazelisk build //aifo/simpletiff/examples:example_read
+bazelisk build //examples:example_read
 
 # Build Python bindings
-bazelisk build //aifo/simpletiff/python:simpletiff
+bazelisk build //python:simpletiff
 
 # Build WebAssembly version
-bazelisk build //aifo/simpletiff/wasm:wasm --platforms=//platforms:wasm32 --define=jpeg_decoder=jpgd
+bazelisk build //wasm:simpletiff_multiplex --platforms=//platforms:wasm32 --define=jpeg_decoder=jpgd
 ```
 
 ## Core Types
