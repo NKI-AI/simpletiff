@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SimpleTIFF WASM Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#f0f9ff",
+                100: "#e0f2fe",
+                500: "#0ea5e9",
+                600: "#0284c7",
+                700: "#0369a1",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="bg-gray-50 min-h-screen font-sans antialiased text-gray-900">
+    <!-- Header -->
+    <header
+      class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-3">
+          <div class="bg-primary-600 text-white p-1.5 rounded-lg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-6 h-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+              />
+            </svg>
+          </div>
+          <h1 class="text-xl font-bold tracking-tight text-gray-900">
+            SimpleTIFF <span class="text-primary-600">WASM</span>
+          </h1>
+        </div>
+        <div class="text-sm text-gray-500">
+          WASM bindings example for SimpleTIFF
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Initial State / Upload -->
+      <div
+        id="uploadSection"
+        class="group relative border-2 border-dashed border-gray-300 rounded-2xl bg-white p-12 text-center hover:border-primary-500 hover:bg-primary-50 transition-all cursor-pointer mb-8"
+      >
+        <div
+          class="w-16 h-16 mx-auto bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-8 h-8"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">
+          Drop TIFF file here or click to upload
+        </h3>
+        <p class="text-sm text-gray-500">
+          Supports Standard TIFF, BigTIFF, Tiled, and Compressed formats
+        </p>
+      </div>
+
+      <!-- Notifications -->
+      <div id="loading" class="hidden mb-6">
+        <div
+          class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3 text-blue-700"
+        >
+          <svg
+            class="animate-spin h-5 w-5 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span class="font-medium">Loading WASM module...</span>
+        </div>
+      </div>
+
+      <div id="error" class="hidden mb-6">
+        <div
+          class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-700"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span id="errorMsg" class="font-medium"></span>
+        </div>
+      </div>
+
+      <div id="success" class="hidden mb-6">
+        <div
+          class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 text-green-700"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span id="successMsg" class="font-medium"></span>
+        </div>
+      </div>
+
+      <!-- Main Application Area (Hidden by default) -->
+      <div id="metadata" class="hidden space-y-6">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <dt
+              class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Pages
+            </dt>
+            <dd id="numPages" class="mt-1 text-2xl font-semibold text-gray-900">
+              -
+            </dd>
+          </div>
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <dt
+              class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              File Size
+            </dt>
+            <dd id="fileSize" class="mt-1 text-2xl font-semibold text-gray-900">
+              -
+            </dd>
+          </div>
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <dt
+              class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              BigTIFF
+            </dt>
+            <dd
+              id="isBigTiff"
+              class="mt-1 text-2xl font-semibold text-gray-900"
+            >
+              -
+            </dd>
+          </div>
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+            <dt
+              class="text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Dimensions
+            </dt>
+            <dd
+              id="dimensions"
+              class="mt-1 text-2xl font-semibold text-gray-900"
+            >
+              -
+            </dd>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Controls Sidebar -->
+          <div class="lg:col-span-1 space-y-6">
+            <!-- View Controls -->
+            <div
+              class="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+            >
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                View Settings
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label
+                    for="pageSelect"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Select Page</label
+                  >
+                  <select
+                    id="pageSelect"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3 border bg-white"
+                  ></select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label
+                      for="regionX"
+                      class="block text-xs font-medium text-gray-500 mb-1"
+                      >X Pos</label
+                    >
+                    <input
+                      type="number"
+                      id="regionX"
+                      value="0"
+                      min="0"
+                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      for="regionY"
+                      class="block text-xs font-medium text-gray-500 mb-1"
+                      >Y Pos</label
+                    >
+                    <input
+                      type="number"
+                      id="regionY"
+                      value="0"
+                      min="0"
+                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      for="regionWidth"
+                      class="block text-xs font-medium text-gray-500 mb-1"
+                      >Region W</label
+                    >
+                    <input
+                      type="number"
+                      id="regionWidth"
+                      value="512"
+                      min="1"
+                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      for="regionHeight"
+                      class="block text-xs font-medium text-gray-500 mb-1"
+                      >Region H</label
+                    >
+                    <input
+                      type="number"
+                      id="regionHeight"
+                      value="512"
+                      min="1"
+                      class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-2 mt-6">
+                <button
+                  id="readRegionBtn"
+                  class="w-full justify-center rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-colors"
+                >
+                  Read Selected Region
+                </button>
+                <button
+                  id="readFullBtn"
+                  class="w-full justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Read Full Page
+                </button>
+                <button
+                  id="readTileBtn"
+                  style="display: none"
+                  class="w-full justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors mt-2"
+                >
+                  Read Tile (0,0)
+                </button>
+              </div>
+            </div>
+
+            <!-- File Info -->
+            <div
+              class="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+            >
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">Details</h3>
+              <pre
+                id="pageInfo"
+                class="text-xs text-gray-600 overflow-x-auto whitespace-pre-wrap"
+              ></pre>
+            </div>
+
+            <!-- Performance -->
+            <div
+              class="bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+            >
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                Performance
+              </h3>
+              <pre
+                id="perfInfo"
+                class="text-xs font-mono text-gray-600 whitespace-pre-wrap"
+              ></pre>
+            </div>
+          </div>
+
+          <!-- Viewer Area -->
+          <div class="lg:col-span-2">
+            <div
+              class="bg-gray-900 rounded-xl shadow-sm overflow-hidden flex items-center justify-center min-h-[600px] border border-gray-800 relative group"
+            >
+              <!-- Checkerboard background for transparency -->
+              <div
+                class="absolute inset-0 opacity-20"
+                style="
+                  background-image: radial-gradient(
+                    #4b5563 1px,
+                    transparent 1px
+                  );
+                  background-size: 20px 20px;
+                "
+              ></div>
+              <canvas
+                id="canvas"
+                class="max-w-full max-h-full object-contain relative z-10"
+              ></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module">
+      // Use Web Worker for lazy loading and non-blocking processing
+      // Note: type: 'module' enables ES6 imports in worker
+      const worker = new Worker("simpletiff-worker.js", { type: "module" });
+
+      let workerReady = false;
+      let currentPageInfo = null;
+      let currentFileHandle = null;
+
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error");
+      const errorMsgEl = document.getElementById("errorMsg");
+      const successEl = document.getElementById("success");
+      const successMsgEl = document.getElementById("successMsg");
+
+      // Show initial loading state
+      loadingEl.classList.remove("hidden");
+
+      // Handle worker messages
+      worker.onmessage = function (e) {
+        const { type, data, message } = e.data;
+
+        switch (type) {
+          case "ready":
+            workerReady = true;
+            loadingEl.classList.add("hidden");
+            showSuccess("WASM worker ready!");
+            break;
+
+          case "fileLoaded":
+            handleFileLoaded(data);
+            break;
+
+          case "pageInfo":
+            handlePageInfo(data);
+            break;
+
+          case "imageData":
+            handleImageData(data);
+            break;
+
+          case "error":
+            showError(message);
+            break;
+        }
+      };
+
+      worker.onerror = function (err) {
+        loadingEl.classList.add("hidden");
+        showError("Worker error: " + err.message);
+      };
+
+      // File upload handling using File System API + Worker
+      const uploadSection = document.getElementById("uploadSection");
+
+      // Create hidden file input for fallback
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = ".tiff,.tif,.svs,image/tiff";
+      fileInput.style.display = "none";
+      document.body.appendChild(fileInput);
+
+      uploadSection.addEventListener("click", async () => {
+        if (!workerReady) {
+          showError("Worker not ready yet");
+          return;
+        }
+
+        try {
+          // Check if File System Access API is available (Chrome/Edge)
+          if ("showOpenFilePicker" in window) {
+            // Use File System API to pick file
+            const [fileHandle] = await window.showOpenFilePicker({
+              types: [
+                {
+                  description: "TIFF Images",
+                  accept: {
+                    "image/tiff": [".tiff", ".tif", ".svs"],
+                  },
+                },
+              ],
+              multiple: false,
+            });
+
+            // Get the file (this doesn't load it, just gets a handle)
+            const file = await fileHandle.getFile();
+            currentFileHandle = fileHandle;
+
+            // Reset UI
+            loadingEl.classList.remove("hidden");
+            errorEl.classList.add("hidden");
+
+            // Send file to worker (transfers File object, not data!)
+            worker.postMessage({
+              type: "loadFile",
+              data: { file },
+            });
+          } else {
+            // Fallback for Firefox/Safari: use traditional file input
+            fileInput.onchange = (e) => {
+              const file = e.target.files[0];
+              if (file) {
+                loadingEl.classList.remove("hidden");
+                errorEl.classList.add("hidden");
+                worker.postMessage({
+                  type: "loadFile",
+                  data: { file },
+                });
+              }
+              // Reset input for next use
+              fileInput.value = "";
+            };
+            fileInput.click();
+          }
+        } catch (err) {
+          if (err.name === "AbortError") {
+            // User cancelled - not an error
+            return;
+          }
+          showError("Failed to open file: " + err.message);
+        }
+      });
+
+      // Drag and drop support
+      uploadSection.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadSection.classList.add("border-primary-500", "bg-primary-50");
+      });
+
+      uploadSection.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        uploadSection.classList.remove("border-primary-500", "bg-primary-50");
+      });
+
+      uploadSection.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        uploadSection.classList.remove("border-primary-500", "bg-primary-50");
+
+        if (!workerReady) {
+          showError("Worker not ready yet");
+          return;
+        }
+
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+          const item = e.dataTransfer.items[0];
+          if (item.kind === "file") {
+            const file = item.getAsFile();
+            loadingEl.classList.remove("hidden");
+            errorEl.classList.add("hidden");
+            worker.postMessage({
+              type: "loadFile",
+              data: { file },
+            });
+          }
+        }
+      });
+
+      function handleFileLoaded(data) {
+        const { numPages, isBigTiff, fileSize, parseTime } = data;
+        loadingEl.classList.add("hidden");
+
+        // Display metadata
+        document.getElementById("numPages").textContent = numPages;
+        document.getElementById("fileSize").textContent = formatBytes(fileSize);
+        document.getElementById("isBigTiff").textContent = isBigTiff
+          ? "Yes"
+          : "No";
+
+        // Populate page selector
+        const pageSelect = document.getElementById("pageSelect");
+        pageSelect.innerHTML = "";
+        for (let i = 0; i < numPages; i++) {
+          const option = document.createElement("option");
+          option.value = i;
+          option.textContent = `Page ${i}`;
+          pageSelect.appendChild(option);
+        }
+
+        // Request first page info
+        worker.postMessage({
+          type: "getPage",
+          data: { pageIndex: 0 },
+        });
+
+        // Show metadata section
+        document.getElementById("metadata").classList.remove("hidden");
+        document.getElementById("metadata").classList.add("active"); // Keep logic class if needed
+
+        showSuccess(
+          `File loaded successfully! Parsed in ${parseTime.toFixed(
+            2
+          )}ms (lazy loading enabled)`
+        );
+      }
+
+      function handlePageInfo(pageInfo) {
+        currentPageInfo = pageInfo;
+
+        // Update dimensions
+        document.getElementById(
+          "dimensions"
+        ).textContent = `${pageInfo.width}×${pageInfo.height}`;
+
+        // Calculate memory size for full page
+        const bytesPerPixel =
+          (pageInfo.bitsPerSample / 8) * pageInfo.samplesPerPixel;
+        const fullPageBytes = pageInfo.width * pageInfo.height * bytesPerPixel;
+        const fullPageMB = fullPageBytes / (1024 * 1024);
+        const MAX_MEMORY_MB = 100;
+
+        // Update page info display
+        const compressionNames = {
+          1: "None",
+          5: "LZW",
+          7: "JPEG",
+          8: "Deflate",
+          50000: "ZSTD",
+        };
+
+        let info = `Width: ${pageInfo.width}px\n`;
+        info += `Height: ${pageInfo.height}px\n`;
+        info += `Samples per Pixel: ${pageInfo.samplesPerPixel}\n`;
+        info += `Bits per Sample: ${pageInfo.bitsPerSample}\n`;
+        info += `Photometric: ${pageInfo.photometric}\n`;
+        info += `Compression: ${
+          compressionNames[pageInfo.compression] || pageInfo.compression
+        }\n`;
+        info += `Storage Type: ${pageInfo.storageType}\n`;
+        info += `Is Tiled: ${pageInfo.isTiled}\n`;
+        info += `Full Page Memory: ${formatBytes(fullPageBytes)}\n`;
+
+        if (pageInfo.isTiled) {
+          info += `Tile Size: ${pageInfo.tileWidth}×${pageInfo.tileHeight}\n`;
+          info += `Tiles Grid: ${pageInfo.numTilesX}×${pageInfo.numTilesY}\n`;
+        }
+
+        document.getElementById("pageInfo").textContent = info;
+
+        // Enable/disable read full page button based on memory size
+        const readFullBtn = document.getElementById("readFullBtn");
+        if (fullPageMB > MAX_MEMORY_MB) {
+          readFullBtn.disabled = true;
+          readFullBtn.classList.add("opacity-50", "cursor-not-allowed");
+          readFullBtn.classList.remove("hover:bg-gray-50");
+          readFullBtn.title = `Full page too large (${fullPageMB.toFixed(
+            1
+          )}MB > ${MAX_MEMORY_MB}MB). Use "Read Region" instead.`;
+          readFullBtn.innerHTML = `Full Page Too Large (${fullPageMB.toFixed(
+            0
+          )}MB)`;
+        } else {
+          readFullBtn.disabled = false;
+          readFullBtn.classList.remove("opacity-50", "cursor-not-allowed");
+          readFullBtn.classList.add("hover:bg-gray-50");
+          readFullBtn.title = "";
+          readFullBtn.textContent = "Read Full Page";
+        }
+
+        // Show/hide tile button
+        document.getElementById("readTileBtn").style.display = pageInfo.isTiled
+          ? "block"
+          : "none";
+
+        // Update region controls
+        document.getElementById("regionX").max = pageInfo.width - 1;
+        document.getElementById("regionY").max = pageInfo.height - 1;
+        document.getElementById("regionWidth").max = pageInfo.width;
+        document.getElementById("regionHeight").max = pageInfo.height;
+      }
+
+      function handleImageData(data) {
+        const { imageData, width, height, channels, bitsPerSample, readTime } =
+          data;
+
+        // Render to canvas
+        renderImageData(imageData, width, height, channels, bitsPerSample);
+
+        // Update performance info
+        updatePerfInfo({
+          operation: "Read",
+          time: readTime,
+          size: imageData.byteLength,
+        });
+      }
+
+      function loadPage(pageIndex) {
+        // Request page info from worker
+        worker.postMessage({
+          type: "getPage",
+          data: { pageIndex },
+        });
+      }
+
+      // Page selection
+      document.getElementById("pageSelect").addEventListener("change", (e) => {
+        loadPage(parseInt(e.target.value));
+      });
+
+      // Read full page
+      document.getElementById("readFullBtn").addEventListener("click", (e) => {
+        if (!currentPageInfo) return;
+
+        // Check if button is disabled
+        if (e.target.disabled) {
+          showError(
+            'Full page is too large. Use "Read Region" to load a smaller area.'
+          );
+          return;
+        }
+
+        const pageIndex = parseInt(document.getElementById("pageSelect").value);
+        worker.postMessage({
+          type: "readFull",
+          data: { pageIndex },
+        });
+      });
+
+      // Read region
+      document.getElementById("readRegionBtn").addEventListener("click", () => {
+        if (!currentPageInfo) return;
+
+        const pageIndex = parseInt(document.getElementById("pageSelect").value);
+        const x = parseInt(document.getElementById("regionX").value);
+        const y = parseInt(document.getElementById("regionY").value);
+        const width = parseInt(document.getElementById("regionWidth").value);
+        const height = parseInt(document.getElementById("regionHeight").value);
+
+        worker.postMessage({
+          type: "readRegion",
+          data: { pageIndex, x, y, width, height },
+        });
+      });
+
+      // Read tile
+      document.getElementById("readTileBtn").addEventListener("click", () => {
+        if (!currentPageInfo || !currentPageInfo.isTiled) return;
+
+        const pageIndex = parseInt(document.getElementById("pageSelect").value);
+        worker.postMessage({
+          type: "readTile",
+          data: { pageIndex, tileIndex: 0 },
+        });
+      });
+
+      function renderImageData(data, width, height, channels, bitsPerSample) {
+        const canvas = document.getElementById("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        const imageData = ctx.createImageData(width, height);
+
+        // Convert to RGBA for canvas
+        for (let i = 0; i < width * height; i++) {
+          const srcIdx = i * channels;
+          const dstIdx = i * 4;
+
+          if (bitsPerSample === 8) {
+            if (channels === 1) {
+              // Grayscale
+              imageData.data[dstIdx] = data[srcIdx];
+              imageData.data[dstIdx + 1] = data[srcIdx];
+              imageData.data[dstIdx + 2] = data[srcIdx];
+              imageData.data[dstIdx + 3] = 255;
+            } else if (channels >= 3) {
+              // RGB or RGBA
+              imageData.data[dstIdx] = data[srcIdx];
+              imageData.data[dstIdx + 1] = data[srcIdx + 1];
+              imageData.data[dstIdx + 2] = data[srcIdx + 2];
+              imageData.data[dstIdx + 3] =
+                channels === 4 ? data[srcIdx + 3] : 255;
+            }
+          } else if (bitsPerSample === 16) {
+            // Scale 16-bit to 8-bit
+            if (channels === 1) {
+              const val = data[srcIdx] >> 8;
+              imageData.data[dstIdx] = val;
+              imageData.data[dstIdx + 1] = val;
+              imageData.data[dstIdx + 2] = val;
+              imageData.data[dstIdx + 3] = 255;
+            } else if (channels >= 3) {
+              imageData.data[dstIdx] = data[srcIdx] >> 8;
+              imageData.data[dstIdx + 1] = data[srcIdx + 1] >> 8;
+              imageData.data[dstIdx + 2] = data[srcIdx + 2] >> 8;
+              imageData.data[dstIdx + 3] =
+                channels === 4 ? data[srcIdx + 3] >> 8 : 255;
+            }
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+      }
+
+      function updatePerfInfo(info) {
+        const throughput = (
+          info.size /
+          (info.time / 1000) /
+          (1024 * 1024)
+        ).toFixed(2);
+        document.getElementById("perfInfo").textContent =
+          `Operation: ${info.operation}\n` +
+          `Time: ${info.time.toFixed(2)}ms\n` +
+          `Data Size: ${formatBytes(info.size)}\n` +
+          `Throughput: ${throughput} MB/s`;
+      }
+
+      function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+        if (bytes < 1024 * 1024 * 1024)
+          return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+        return (bytes / (1024 * 1024 * 1024)).toFixed(2) + " GB";
+      }
+
+      function showError(message) {
+        errorMsgEl.textContent = message;
+        errorEl.classList.remove("hidden");
+        setTimeout(() => {
+          errorEl.classList.add("hidden");
+        }, 5000);
+      }
+
+      function showSuccess(message) {
+        successMsgEl.textContent = message;
+        successEl.classList.remove("hidden");
+        setTimeout(() => {
+          successEl.classList.add("hidden");
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
