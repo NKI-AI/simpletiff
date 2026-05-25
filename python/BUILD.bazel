@@ -1,0 +1,43 @@
+"""SimpleTIFF Python package (native extension + pure-Python wrapper).
+
+This mirrors the established pattern used by `aifo/fimage`:
+- Build the native pybind11 extension with `pybind_extension`
+- Expose a `py_library` that packages `simpletiff/__init__.py` + ships the
+  extension binary and typing metadata as runfiles.
+"""
+
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+load("@rules_python//python:defs.bzl", "py_library")
+
+package(default_visibility = ["//visibility:public"])
+
+# Native extension module.
+#
+# NOTE: The target name includes a path so the produced .so lands at
+# `simpletiff/_simpletiff.so`, matching `from simpletiff._simpletiff import ...`.
+pybind_extension(
+    name = "simpletiff/_simpletiff",
+    srcs = ["simpletiff_bindings.cpp"],
+    copts = select({
+        "@platforms//os:windows": ["-DPYBIND11_NAMESPACE=pybind11"],
+        "//conditions:default": ["-fvisibility=hidden"],
+    }),
+    linkopts = select({
+        "@platforms//os:macos": ["-Wl,-exported_symbol,_PyInit__simpletiff"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        "//:simpletiff_lib",
+    ],
+)
+
+py_library(
+    name = "simpletiff",
+    srcs = ["simpletiff/__init__.py"],
+    data = [
+        "simpletiff/_simpletiff.pyi",
+        "simpletiff/py.typed",
+        ":simpletiff/_simpletiff",
+    ],
+    imports = ["."],
+)
