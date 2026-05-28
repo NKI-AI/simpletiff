@@ -76,6 +76,7 @@ constexpr uint16_t kTagTileLength = 323;
 constexpr uint16_t kTagTileOffsets = 324;
 constexpr uint16_t kTagTileByteCounts = 325;
 constexpr uint16_t kTagJpegTables = 347;
+constexpr uint16_t kTagXmp = 700;  // XMP / XMLPacket (Adobe; vendor metadata)
 constexpr uint16_t kTagXResolution = 282;
 constexpr uint16_t kTagYResolution = 283;
 constexpr uint16_t kTagResolutionUnit = 296;
@@ -544,6 +545,20 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
       break;
     case kTagSoftware:
       ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.software);
+      break;
+    case kTagXmp:
+      // XMP / XMLPacket. Usually UNDEFINED(7) or BYTE(1); occasionally
+      // ASCII(2). Store as a blob to preserve the original bytes (the packet
+      // can contain embedded NULs and is consumed verbatim by vendor readers,
+      // e.g. Ventana BIF). When ASCII, ReadTagString stops at the first NUL
+      // which is fine.
+      if (entry.type == 2) {
+        ReadTagString(fd, file_size, entry, bigtiff,
+                      ctx.page_header.xmp_packet);
+      } else {
+        ReadTagBlobString(fd, file_size, entry, bigtiff,
+                          ctx.page_header.xmp_packet);
+      }
       break;
     case kTagStripOffsets:
       // Defer loading - only store metadata

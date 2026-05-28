@@ -220,8 +220,11 @@ struct PageHeader {
   uint32_t payload_id = 0;              ///< Index into appropriate pool
   std::string description;              ///< Image description (optional)
   std::string software;                 ///< Software (optional TIFF tag)
-  std::optional<double> x_resolution;   ///< XResolution tag value
-  std::optional<double> y_resolution;   ///< YResolution tag value
+  std::string xmp_packet;  ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
+                           ///< Stored verbatim (may contain embedded NULs).
+                           ///< Used by vendor formats such as Ventana BIF.
+  std::optional<double> x_resolution;  ///< XResolution tag value
+  std::optional<double> y_resolution;  ///< YResolution tag value
   std::optional<uint16_t>
       resolution_unit;  ///< ResolutionUnit (1=none, 2=inch, 3=cm)
 

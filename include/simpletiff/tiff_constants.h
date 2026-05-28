@@ -151,7 +151,8 @@ constexpr bool IsPhotometric(uint16_t code, Photometric expected) {
 //   and the decoder unpacks the bilevel rows to 8-bit grayscale (0 or 255)
 //   honoring PhotometricInterpretation. Downstream consumers therefore still
 //   see a byte-aligned format (BitsPerSample=8, SamplesPerPixel=1).
-// - The on-disk storage width is preserved in PageHeader::bits_per_sample_storage
+// - The on-disk storage width is preserved in
+// PageHeader::bits_per_sample_storage
 //   for tools that care; PageHeader::bits_per_sample reflects the *decoded*
 //   width that consumers should use.
 //
