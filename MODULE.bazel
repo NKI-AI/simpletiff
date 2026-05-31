@@ -29,16 +29,15 @@ bazel_dep(name = "aifocore-cpp", version = "0.0.1")
 # resolves the dep from GitHub instead.
 git_override(
     module_name = "aifocore-cpp",
-    remote = "https://github.com/NKI-AI/aifocore.git",
     commit = "a1046b325dd8f7a89a4411fa1b45bc9faeb80ff8",
+    remote = "https://github.com/NKI-AI/aifocore.git",
 )
 
 bazel_dep(name = "jpeg-compressor", version = "0.0.1")
-
 git_override(
     module_name = "jpeg-compressor",
-    remote = "https://github.com/NKI-AI/jpeg-compressor.git",
     commit = "927f759d349b7ce2588d50465d719c42011ccb4b",
+    remote = "https://github.com/NKI-AI/jpeg-compressor.git",
 )
 
 bazel_dep(name = "pybind11_bazel", version = "3.0.0")
@@ -56,6 +55,7 @@ http_archive(
 )
 
 bazel_dep(name = "libwebp", version = "1.5.0")
+
 http_archive(
     name = "libtiff",
     build_file = "//third_party:libtiff.BUILD",

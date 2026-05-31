@@ -1310,5 +1310,88 @@ TEST(TiffParserTest, NdpiClassic64EnumeratesIfds) {
   }
 }
 
+TEST(TiffParserTest, ParsesXmpTag700) {
+  // Verify that tag 700 (XMP / XMLPacket) is captured verbatim into
+  // PageHeader::xmp_packet, including any embedded NUL bytes.
+  constexpr uint16_t kTypeByte = 1;
+  constexpr uint16_t kTypeShort = 3;
+  constexpr uint16_t kTypeLong = 4;
+  constexpr uint16_t kTypeUndefined = 7;
+
+  // XMP payload (UNDEFINED type) with an embedded NUL to confirm blob handling.
+  const std::string xmp =
+      std::string("<iScan ScannerModel=\"VENTANA DP 200\"/>")
+          .append(1, '\0')
+          .append("trailing");
+
+  constexpr uint32_t kWidth = 4;
+  constexpr uint32_t kHeight = 4;
+  constexpr uint16_t kNumEntries = 10;
+  constexpr uint32_t kIfdOffset = 8;
+  const uint32_t kIfdSize = 2 + static_cast<uint32_t>(kNumEntries) * 12 + 4;
+  const uint32_t xmp_offset = kIfdOffset + kIfdSize;
+  const uint32_t strip_offset = xmp_offset + static_cast<uint32_t>(xmp.size());
+
+  std::vector<uint8_t> tiff;
+  // Header: "II" + 42 + first IFD offset.
+  tiff.push_back(0x49);
+  tiff.push_back(0x49);
+  AppendLe16(tiff, 42);
+  AppendLe32(tiff, kIfdOffset);
+
+  AppendLe16(tiff, kNumEntries);
+  AppendIfdEntryClassic(tiff, /*tag=*/256, kTypeLong, /*count=*/1, kWidth);
+  AppendIfdEntryClassic(tiff, /*tag=*/257, kTypeLong, /*count=*/1, kHeight);
+  AppendIfdEntryClassic(tiff, /*tag=*/258, kTypeShort, /*count=*/1,
+                        /*value=*/8);
+  AppendIfdEntryClassic(tiff, /*tag=*/259, kTypeShort, /*count=*/1,
+                        /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/262, kTypeShort, /*count=*/1,
+                        /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/277, kTypeShort, /*count=*/1,
+                        /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/278, kTypeLong, /*count=*/1, kHeight);
+  AppendIfdEntryClassic(tiff, /*tag=*/273, kTypeLong, /*count=*/1,
+                        strip_offset);
+  AppendIfdEntryClassic(tiff, /*tag=*/279, kTypeLong, /*count=*/1,
+                        /*value=*/16);
+  // XMP tag 700: UNDEFINED, count = payload length, value at xmp_offset.
+  AppendIfdEntryClassic(tiff, /*tag=*/700, kTypeUndefined,
+                        static_cast<uint32_t>(xmp.size()), xmp_offset);
+  AppendLe32(tiff, /*next_ifd=*/0);
+
+  ASSERT_EQ(tiff.size(), xmp_offset);
+  tiff.insert(tiff.end(), xmp.begin(), xmp.end());
+  // 16-byte dummy strip payload (StripByteCounts above).
+  tiff.insert(tiff.end(), 16, 0x00);
+  static_cast<void>(kTypeByte);
+
+  const char* test_tmpdir = std::getenv("TEST_TMPDIR");
+  std::filesystem::path tmp_dir = test_tmpdir
+                                      ? std::filesystem::path(test_tmpdir)
+                                      : std::filesystem::temp_directory_path();
+  const auto unique = std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count());
+  const std::filesystem::path tiff_path =
+      tmp_dir / ("simpletiff_xmp700_" + unique + ".tif");
+
+  std::ofstream ofs(tiff_path, std::ios::binary);
+  ASSERT_TRUE(ofs.good());
+  ofs.write(reinterpret_cast<const char*>(tiff.data()),
+            static_cast<std::streamsize>(tiff.size()));
+  ofs.close();
+
+  TiffIndex index;
+  int fd = -1;
+  ASSERT_TRUE(OpenTiff(tiff_path.string(), index, fd));
+  ASSERT_EQ(index.NumPages(), 1u);
+  EXPECT_EQ(index.Page(0).xmp_packet, xmp);
+  EXPECT_NE(index.Page(0).xmp_packet.find("VENTANA DP 200"), std::string::npos);
+
+  if (fd >= 0) {
+    aifocore::portable_close(fd);
+  }
+}
+
 }  // namespace
 }  // namespace simpletiff
