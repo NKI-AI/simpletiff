@@ -37,10 +37,12 @@ enum class Compression : uint16_t {
   // JPEG 2000:
   // - 33003 is used by Aperio SVS for JP2K-compressed YCbCr tiles.
   // - 33005 is used by Aperio SVS for JP2K-compressed RGB tiles.
+  // - 34712 is the standard ISO/IEC TIFF tag for JPEG2000. The
+  //   payload is a JP2/codestream in RGB; it is not YCbCr.
   //
-  // SimpleTIFF treats both codes as JPEG2000 and routes them to the same
+  // SimpleTIFF treats all three codes as JPEG2000 and routes them to the same
   // decoder. We keep the enum value at 33003 for historical reasons and rely
-  // on IsCompression() to accept both. Use IsJpeg2000YCbCr() below to
+  // on IsCompression() to accept the others. Use IsJpeg2000YCbCr() below to
   // distinguish the color space from the raw compression code.
   kJpeg2000 = 33003,
   kZstd = 50000,  ///< ZSTD compression (vendor-specific code)
@@ -61,7 +63,7 @@ constexpr uint16_t ToCompressionCode(Compression compression_value) {
 /// @return True if codes match
 constexpr bool IsCompression(uint16_t code, Compression expected) {
   if (expected == Compression::kJpeg2000) {
-    return code == 33003u || code == 33005u;
+    return code == 33003u || code == 33005u || code == 34712u;
   }
   return code == static_cast<uint16_t>(expected);
 }
@@ -84,6 +86,7 @@ constexpr bool IsCcittCompression(uint16_t code) {
 /// Aperio SVS uses two vendor-specific compression codes for JP2K tiles:
 ///   - 33003: JP2K with YCbCr (sYCC) color space
 ///   - 33005: JP2K with RGB color space
+/// The standard ISO/IEC code 34712 (Bio-Formats / Olympus VSI) is RGB.
 ///
 /// The TIFF PhotometricInterpretation tag is unreliable for these files
 /// (Aperio often writes Photometric=RGB even for YCbCr-encoded tiles).
