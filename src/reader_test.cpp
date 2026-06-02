@@ -523,8 +523,18 @@ TEST(CompressionTest, IsCompressionHelperWorks) {
 TEST(CompressionTest, IsJpeg2000YCbCrDistinguishesColorSpace) {
   EXPECT_TRUE(IsJpeg2000YCbCr(33003u));
   EXPECT_FALSE(IsJpeg2000YCbCr(33005u));
+  EXPECT_FALSE(IsJpeg2000YCbCr(34712u));
   EXPECT_FALSE(IsJpeg2000YCbCr(7u));
   EXPECT_FALSE(IsJpeg2000YCbCr(0u));
+}
+
+TEST(CompressionTest, IsCompressionAcceptsAllJpeg2000Codes) {
+  // Aperio vendor codes (YCbCr / RGB) plus the standard ISO/IEC tag 34712
+  // used by Bio-Formats and Olympus VSI associated images.
+  EXPECT_TRUE(IsCompression(33003u, Compression::kJpeg2000));
+  EXPECT_TRUE(IsCompression(33005u, Compression::kJpeg2000));
+  EXPECT_TRUE(IsCompression(34712u, Compression::kJpeg2000));
+  EXPECT_FALSE(IsCompression(7u, Compression::kJpeg2000));
 }
 
 TEST(Jpeg2000Test, CanReadSingleStripJpeg2000ClassicTiff) {
