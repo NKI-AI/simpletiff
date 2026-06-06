@@ -1,0 +1,10 @@
+option('build_tests', type : 'boolean', value : true,
+  description : 'Build the unit test suite (requires gtest).')
+option('build_examples', type : 'boolean', value : false,
+  description : 'Build the example programs.')
+option('build_benchmarks', type : 'boolean', value : false,
+  description : 'Build the benchmarks (requires Google Benchmark and libtiff).')
+option('jpeg_decoder', type : 'combo', choices : ['libjpeg', 'jpgd'], value : 'libjpeg',
+  description : 'JPEG decoder backend: system libjpeg(-turbo) or the bundled jpeg-compressor (jpgd).')
+option('with_openjpeg', type : 'feature', value : 'auto',
+  description : 'JPEG2000 (OpenJPEG) support. Always disabled for wasm targets.')

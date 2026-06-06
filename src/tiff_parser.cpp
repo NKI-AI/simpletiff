@@ -373,9 +373,6 @@ bool ReadTagBlobString(int fd, size_t file_size, const IfdEntry& entry,
                      out);
 }
 
-// (Removed) InferNdpiTileGeometry: we now derive tile geometry directly from
-// the JPEG header (DRI + SOF sampling), matching OpenSlide's approach.
-
 /// Read a RATIONAL tag value as a double (numerator / denominator)
 ///
 /// @param fd File descriptor
