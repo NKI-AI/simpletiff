@@ -234,10 +234,12 @@ struct PageHeader {
   //
   // NDPI uses vendor-specific TIFF tags:
   // - 65421 (SourceLens): -1=macro, -2=map, otherwise magnification
+  // - 65424 (ZOffset): focal-plane offset in nanometres (z-stacks)
   // - 65449 (NDPI metadata): newline separated key=value pairs (often)
   //
   // We keep these optional so non-NDPI TIFFs do not pay behavioral cost.
   std::optional<double> ndpi_source_lens;  ///< Tag 65421 (SourceLens)
+  std::optional<double> ndpi_zoffset;      ///< Tag 65424 (ZOffset, nm)
   std::string ndpi_metadata;               ///< Tag 65449 (NDPI metadata blob)
 };
 
