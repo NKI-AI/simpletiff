@@ -85,6 +85,7 @@ constexpr uint16_t kTagSubIFDs = 330;
 constexpr uint16_t kTagOffsetHighBytes =
     65324;                                      // NDPI: high 32 bits of offsets
 constexpr uint16_t kTagNdpiSourceLens = 65421;  // NDPI: SourceLens
+constexpr uint16_t kTagNdpiZOffset = 65424;     // NDPI: ZOffset (nm)
 constexpr uint16_t kTagNdpiMetadata = 65449;    // NDPI: metadata blob
 constexpr uint16_t kTagNdpiMcuStarts =
     65426;  // NDPI: MCU starts (tile starts within strip)
@@ -665,6 +666,14 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
       if (ReadTagSignedDouble(fd, file_size, entry, bigtiff, little_endian,
                               value)) {
         ctx.page_header.ndpi_source_lens = value;
+      }
+      break;
+    }
+    case kTagNdpiZOffset: {
+      double value = 0.0;
+      if (ReadTagSignedDouble(fd, file_size, entry, bigtiff, little_endian,
+                              value)) {
+        ctx.page_header.ndpi_zoffset = value;
       }
       break;
     }
