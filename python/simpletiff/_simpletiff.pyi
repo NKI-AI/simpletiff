@@ -74,6 +74,11 @@ class SimpleTiffPage:
         ...
 
     @property
+    def sample_format(self) -> int:
+        """SampleFormat TIFF tag (339): 1=unsigned, 2=signed, 3=IEEE float."""
+        ...
+
+    @property
     def photometric(self) -> int:
         """Photometric interpretation value."""
         ...
