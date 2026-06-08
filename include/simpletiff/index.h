@@ -210,6 +210,10 @@ struct PageHeader {
                                          ///< bilevel pages so callers can
                                          ///< distinguish the original storage
                                          ///< width from the decoded width.
+  uint16_t sample_format = 1;  ///< SampleFormat tag (339): 1=unsigned int,
+                               ///< 2=signed int, 3=IEEE float. Defaults to 1
+                               ///< (unsigned) when the tag is absent, matching
+                               ///< the TIFF specification.
   uint16_t photometric = 0;  ///< Photometric interpretation (2=RGB, 6=YCbCr)
   uint16_t compression = 0;  ///< Compression type (7=OJPEG, etc.)
   uint16_t predictor = 1;    ///< Predictor (1=none, 2=horizontal differencing)

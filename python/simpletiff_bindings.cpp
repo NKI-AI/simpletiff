@@ -122,6 +122,11 @@ class SimpleTiffPage {
     return state_->index.Page(page_index_).bits_per_sample;
   }
 
+  /// Get the SampleFormat tag (339): 1=unsigned, 2=signed, 3=IEEE float
+  uint16_t sample_format() const {
+    return state_->index.Page(page_index_).sample_format;
+  }
+
   /// Get photometric interpretation
   uint16_t photometric() const {
     return state_->index.Page(page_index_).photometric;
@@ -517,6 +522,9 @@ PYBIND11_MODULE(_simpletiff, m) {
       .def_property_readonly("bits_per_sample",
                              &SimpleTiffPage::bits_per_sample,
                              "Number of bits per sample")
+      .def_property_readonly("sample_format", &SimpleTiffPage::sample_format,
+                             "SampleFormat TIFF tag (339): 1=unsigned, "
+                             "2=signed, 3=IEEE float")
       .def_property_readonly("photometric", &SimpleTiffPage::photometric,
                              "Photometric interpretation value")
       .def_property_readonly("compression", &SimpleTiffPage::compression,

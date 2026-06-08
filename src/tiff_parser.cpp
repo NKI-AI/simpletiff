@@ -75,6 +75,7 @@ constexpr uint16_t kTagTileWidth = 322;
 constexpr uint16_t kTagTileLength = 323;
 constexpr uint16_t kTagTileOffsets = 324;
 constexpr uint16_t kTagTileByteCounts = 325;
+constexpr uint16_t kTagSampleFormat = 339;
 constexpr uint16_t kTagJpegTables = 347;
 constexpr uint16_t kTagXmp = 700;  // XMP / XMLPacket (Adobe; vendor metadata)
 constexpr uint16_t kTagXResolution = 282;
@@ -629,6 +630,14 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
       if (ReadTagData(fd, file_size, entry, bigtiff, little_endian, values) &&
           !values.empty()) {
         ctx.page_header.predictor = static_cast<uint16_t>(values[0]);
+      }
+      break;
+    case kTagSampleFormat:
+      // SampleFormat (339): 1=unsigned int, 2=signed int, 3=IEEE float. Only
+      // the first value is read; multi-sample pages are assumed homogeneous.
+      if (ReadTagData(fd, file_size, entry, bigtiff, little_endian, values) &&
+          !values.empty()) {
+        ctx.page_header.sample_format = static_cast<uint16_t>(values[0]);
       }
       break;
     case kTagXResolution: {
