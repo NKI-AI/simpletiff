@@ -214,11 +214,11 @@ struct PageHeader {
                                ///< 2=signed int, 3=IEEE float. Defaults to 1
                                ///< (unsigned) when the tag is absent, matching
                                ///< the TIFF specification.
-  uint16_t photometric = 0;  ///< Photometric interpretation (2=RGB, 6=YCbCr)
-  uint16_t compression = 0;  ///< Compression type (7=OJPEG, etc.)
-  uint16_t predictor = 1;    ///< Predictor (1=none, 2=horizontal differencing)
-  uint16_t fill_order = 1;   ///< FillOrder (1=MSB2LSB default, 2=LSB2MSB).
-                             ///< Only meaningful for CCITT bilevel codecs.
+  uint16_t photometric = 0;    ///< Photometric interpretation (2=RGB, 6=YCbCr)
+  uint16_t compression = 0;    ///< Compression type (7=OJPEG, etc.)
+  uint16_t predictor = 1;   ///< Predictor (1=none, 2=horizontal differencing)
+  uint16_t fill_order = 1;  ///< FillOrder (1=MSB2LSB default, 2=LSB2MSB).
+                            ///< Only meaningful for CCITT bilevel codecs.
   uint32_t new_subfile_type = 0;        ///< New subfile type tag
   Storage storage = Storage::kUnknown;  ///< Storage type
   uint32_t payload_id = 0;              ///< Index into appropriate pool
