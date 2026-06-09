@@ -1,0 +1,12 @@
+prefix=@PREFIX@
+exec_prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: simpletiff
+Description: Fast TIFF reader library for whole-slide imaging
+Version: @VERSION@
+Requires: libjpeg
+Cflags: -I${includedir}
+Libs: -L${libdir} -lsimpletiff
+
