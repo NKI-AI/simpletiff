@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// libjpeg-turbo backed JPEG decoder + DecodeContext lifecycle for simpletiff.
-// The decoder-agnostic helpers (ReadBytes, ComposeJpegStream, CopyTileInto,
-// ...) live in io_utils_common.cpp so that both this file and io_utils_jpgd.cpp
-// can share them without drift.
-
 #include "simpletiff/io_utils.h"
+
+// The following is needed on gcc-11, and must take precedence over
+// <jpeglib.h>: it uses global FILE*. <cstdio> only guarantees std::FILE.
+#include <stdio.h>
 
 #include <jpeglib.h>
 
