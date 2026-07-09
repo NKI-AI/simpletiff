@@ -227,6 +227,10 @@ struct PageHeader {
   std::string xmp_packet;  ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
                            ///< Stored verbatim (may contain embedded NULs).
                            ///< Used by vendor formats such as Ventana BIF.
+  std::string icc_profile;  ///< Tag 34675 (0x8773, ICC Profile) raw bytes
+                            ///< (optional). Stored verbatim; usually present
+                            ///< only on the level-0 IFD but applies to the
+                            ///< whole pyramid. Consumed for color management.
   std::optional<double> x_resolution;  ///< XResolution tag value
   std::optional<double> y_resolution;  ///< YResolution tag value
   std::optional<uint16_t>

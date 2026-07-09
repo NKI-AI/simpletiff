@@ -14,7 +14,9 @@
 
 #include "simpletiff/io_utils.h"
 
-#include <stdio.h>  // Must precede <jpeglib.h>: it uses global FILE*. <cstdio> only guarantees std::FILE.
+// The following is needed on gcc-11, and must take precedence over
+// <jpeglib.h>: it uses global FILE*. <cstdio> only guarantees std::FILE.
+#include <stdio.h>
 
 #include <jpeglib.h>
 
