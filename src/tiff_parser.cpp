@@ -78,6 +78,7 @@ constexpr uint16_t kTagTileByteCounts = 325;
 constexpr uint16_t kTagSampleFormat = 339;
 constexpr uint16_t kTagJpegTables = 347;
 constexpr uint16_t kTagXmp = 700;  // XMP / XMLPacket (Adobe; vendor metadata)
+constexpr uint16_t kTagIccProfile = 34675;  // 0x8773 (ICC color profile)
 constexpr uint16_t kTagXResolution = 282;
 constexpr uint16_t kTagYResolution = 283;
 constexpr uint16_t kTagResolutionUnit = 296;
@@ -558,6 +559,12 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
         ReadTagBlobString(fd, file_size, entry, bigtiff,
                           ctx.page_header.xmp_packet);
       }
+      break;
+    case kTagIccProfile:
+      // ICC profile (tag 34675 / 0x8773). Type is UNDEFINED(7); store the raw
+      // bytes verbatim (may contain embedded NULs) for color management.
+      ReadTagBlobString(fd, file_size, entry, bigtiff,
+                        ctx.page_header.icc_profile);
       break;
     case kTagStripOffsets:
       // Defer loading - only store metadata

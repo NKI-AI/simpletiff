@@ -8,6 +8,7 @@ project('simpletiff', 'cpp',
     'default_library=shared',
   ])
 
+cpp = meson.get_compiler('cpp')
 is_wasm = host_machine.cpu_family() == 'wasm32' or host_machine.cpu_family() == 'wasm64'
 
 # ---------------------------------------------------------------------------
@@ -85,7 +86,7 @@ simpletiff_lib = library('simpletiff',
   simpletiff_sources,
   include_directories : [inc] + jpeg_extra_inc,
   dependencies : simpletiff_deps,
-  cpp_args : simpletiff_defines + ['-Wno-unused-parameter'],
+  cpp_args : simpletiff_defines + cpp.get_supported_arguments(['-Wno-unused-parameter']),
   install : true)
 
 install_subdir('include/simpletiff', install_dir : get_option('includedir'))
