@@ -224,9 +224,17 @@ struct PageHeader {
   uint32_t payload_id = 0;              ///< Index into appropriate pool
   std::string description;              ///< Image description (optional)
   std::string software;                 ///< Software (optional TIFF tag)
-  std::string xmp_packet;  ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
-                           ///< Stored verbatim (may contain embedded NULs).
-                           ///< Used by vendor formats such as Ventana BIF.
+  std::string document_name;            ///< Tag 269 (DocumentName)
+  std::string make;                     ///< Tag 271 (Make)
+  std::string model;                    ///< Tag 272 (Model)
+  std::string date_time;                ///< Tag 306 (DateTime)
+  std::string artist;                   ///< Tag 315 (Artist)
+  std::string host_computer;            ///< Tag 316 (HostComputer)
+  std::string copyright;                ///< Tag 33432 (Copyright)
+
+  std::string xmp_packet;   ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
+                            ///< Stored verbatim (may contain embedded NULs).
+                            ///< Used by vendor formats such as Ventana BIF.
   std::string icc_profile;  ///< Tag 34675 (0x8773, ICC Profile) raw bytes
                             ///< (optional). Stored verbatim; usually present
                             ///< only on the level-0 IFD but applies to the

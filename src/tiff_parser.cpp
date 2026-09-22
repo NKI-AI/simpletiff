@@ -65,7 +65,10 @@ constexpr uint16_t kTagBitsPerSample = 258;
 constexpr uint16_t kTagCompression = 259;
 constexpr uint16_t kTagPhotometric = 262;
 constexpr uint16_t kTagFillOrder = 266;
+constexpr uint16_t kTagDocumentName = 269;
 constexpr uint16_t kTagImageDescription = 270;
+constexpr uint16_t kTagMake = 271;
+constexpr uint16_t kTagModel = 272;
 constexpr uint16_t kTagStripOffsets = 273;
 constexpr uint16_t kTagSamplesPerPixel = 277;
 constexpr uint16_t kTagRowsPerStrip = 278;
@@ -83,6 +86,10 @@ constexpr uint16_t kTagXResolution = 282;
 constexpr uint16_t kTagYResolution = 283;
 constexpr uint16_t kTagResolutionUnit = 296;
 constexpr uint16_t kTagSoftware = 305;
+constexpr uint16_t kTagDateTime = 306;
+constexpr uint16_t kTagArtist = 315;
+constexpr uint16_t kTagHostComputer = 316;
+constexpr uint16_t kTagCopyright = 33432;
 constexpr uint16_t kTagSubIFDs = 330;
 constexpr uint16_t kTagOffsetHighBytes =
     65324;                                      // NDPI: high 32 bits of offsets
@@ -545,6 +552,29 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
       break;
     case kTagSoftware:
       ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.software);
+      break;
+    case kTagDocumentName:
+      ReadTagString(fd, file_size, entry, bigtiff,
+                    ctx.page_header.document_name);
+      break;
+    case kTagMake:
+      ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.make);
+      break;
+    case kTagModel:
+      ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.model);
+      break;
+    case kTagDateTime:
+      ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.date_time);
+      break;
+    case kTagArtist:
+      ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.artist);
+      break;
+    case kTagHostComputer:
+      ReadTagString(fd, file_size, entry, bigtiff,
+                    ctx.page_header.host_computer);
+      break;
+    case kTagCopyright:
+      ReadTagString(fd, file_size, entry, bigtiff, ctx.page_header.copyright);
       break;
     case kTagXmp:
       // XMP / XMLPacket. Usually UNDEFINED(7) or BYTE(1); occasionally
