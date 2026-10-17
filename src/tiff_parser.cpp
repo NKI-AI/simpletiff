@@ -590,12 +590,20 @@ void ProcessTag(const IfdEntry& entry, int fd, size_t file_size, bool bigtiff,
                           ctx.page_header.xmp_packet);
       }
       break;
-    case kTagIccProfile:
-      // ICC profile (tag 34675 / 0x8773). Type is UNDEFINED(7); store the raw
-      // bytes verbatim (may contain embedded NULs) for color management.
-      ReadTagBlobString(fd, file_size, entry, bigtiff,
-                        ctx.page_header.icc_profile);
+    case kTagIccProfile: {
+      // ICC profile (tag 34675 / 0x8773). Type is UNDEFINED(7). Only its
+      // location is kept, the bytes are read on demand. A profile has a
+      // 128-byte header, so it is never stored inline in the entry.
+      if (entry.type == 0 || entry.type >= kTypeSizes.size()) {
+        break;
+      }
+      const uint64_t size = kTypeSizes[entry.type] * entry.count;
+      if (size > (bigtiff ? 8U : 4U) && entry.value_offset <= file_size &&
+          size <= file_size - entry.value_offset) {
+        ctx.page_header.icc_profile = BlobRef{entry.value_offset, size};
+      }
       break;
+    }
     case kTagStripOffsets:
       // Defer loading - only store metadata
       ctx.lazy_strip_offsets.tag_type = entry.type;

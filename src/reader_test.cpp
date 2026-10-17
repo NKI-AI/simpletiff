@@ -1403,5 +1403,107 @@ TEST(TiffParserTest, ParsesXmpTag700) {
   }
 }
 
+// Writes a classic little-endian TIFF of one 4x4 gray strip page with an ICC
+// profile tag (34675) of `icc_count` bytes at `icc_offset` (the payload
+// itself is appended after the IFD when `icc` is not empty).
+std::filesystem::path WriteTiffWithIccTag(const std::string& name,
+                                          const std::string& icc,
+                                          uint32_t icc_count,
+                                          uint32_t icc_offset) {
+  constexpr uint16_t kTypeShort = 3;
+  constexpr uint16_t kTypeLong = 4;
+  constexpr uint16_t kTypeUndefined = 7;
+  constexpr uint32_t kSide = 4;
+  constexpr uint16_t kNumEntries = 10;
+  constexpr uint32_t kIfdOffset = 8;
+  const uint32_t ifd_size = 2 + static_cast<uint32_t>(kNumEntries) * 12 + 4;
+  const uint32_t strip_offset =
+      kIfdOffset + ifd_size + static_cast<uint32_t>(icc.size());
+
+  std::vector<uint8_t> tiff;
+  tiff.push_back(0x49);
+  tiff.push_back(0x49);
+  AppendLe16(tiff, 42);
+  AppendLe32(tiff, kIfdOffset);
+  AppendLe16(tiff, kNumEntries);
+  AppendIfdEntryClassic(tiff, /*tag=*/256, kTypeLong, 1, kSide);
+  AppendIfdEntryClassic(tiff, /*tag=*/257, kTypeLong, 1, kSide);
+  AppendIfdEntryClassic(tiff, /*tag=*/258, kTypeShort, 1, /*value=*/8);
+  AppendIfdEntryClassic(tiff, /*tag=*/259, kTypeShort, 1, /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/262, kTypeShort, 1, /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/273, kTypeLong, 1, strip_offset);
+  AppendIfdEntryClassic(tiff, /*tag=*/277, kTypeShort, 1, /*value=*/1);
+  AppendIfdEntryClassic(tiff, /*tag=*/278, kTypeLong, 1, kSide);
+  AppendIfdEntryClassic(tiff, /*tag=*/279, kTypeLong, 1, kSide * kSide);
+  AppendIfdEntryClassic(tiff, /*tag=*/34675, kTypeUndefined, icc_count,
+                        icc_offset);
+  AppendLe32(tiff, /*next_ifd=*/0);
+  tiff.insert(tiff.end(), icc.begin(), icc.end());
+  tiff.insert(tiff.end(), kSide * kSide, 0x00);
+
+  const char* test_tmpdir = std::getenv("TEST_TMPDIR");
+  const std::filesystem::path tmp_dir =
+      test_tmpdir ? std::filesystem::path(test_tmpdir)
+                  : std::filesystem::temp_directory_path();
+  const auto unique = std::to_string(
+      std::chrono::steady_clock::now().time_since_epoch().count());
+  const std::filesystem::path path = tmp_dir / (name + "_" + unique + ".tif");
+  std::ofstream ofs(path, std::ios::binary);
+  ofs.write(reinterpret_cast<const char*>(tiff.data()),
+            static_cast<std::streamsize>(tiff.size()));
+  return path;
+}
+
+TEST(TiffParserTest, IccProfileTag34675IsReadOnDemand) {
+  // A profile with embedded NULs, longer than an inline value.
+  std::string icc(200, '\0');
+  for (size_t i = 0; i < icc.size(); ++i) {
+    icc[i] = static_cast<char>(i % 7 == 0 ? 0 : i);
+  }
+  constexpr uint32_t kIccOffset = 8 + 2 + 10 * 12 + 4;
+  const auto path = WriteTiffWithIccTag(
+      "simpletiff_icc", icc, static_cast<uint32_t>(icc.size()), kIccOffset);
+
+  TiffIndex index;
+  int fd = -1;
+  ASSERT_TRUE(OpenTiff(path.string(), index, fd));
+  ASSERT_EQ(index.NumPages(), 1u);
+  const BlobRef& ref = index.Page(0).icc_profile;
+  EXPECT_EQ(ref.offset, kIccOffset);
+  EXPECT_EQ(ref.size, icc.size());
+
+  std::vector<uint8_t> bytes;
+  ASSERT_TRUE(index.ReadBlob(ref, bytes));
+  EXPECT_EQ(std::string(bytes.begin(), bytes.end()), icc);
+
+  if (fd >= 0) {
+    aifocore::portable_close(fd);
+  }
+}
+
+TEST(TiffParserTest, IccProfileTagTooSmallOrPastTheFileIsAbsent) {
+  // An inline value (4 bytes) cannot hold a profile and its 128-byte header.
+  const auto inline_path = WriteTiffWithIccTag("simpletiff_icc_inline", "",
+                                               /*icc_count=*/4, 0x01020304);
+  TiffIndex inline_index;
+  int fd = -1;
+  ASSERT_TRUE(OpenTiff(inline_path.string(), inline_index, fd));
+  EXPECT_TRUE(inline_index.Page(0).icc_profile.empty());
+  if (fd >= 0) {
+    aifocore::portable_close(fd);
+  }
+
+  // A profile that would end past the end of the file.
+  const auto past_path = WriteTiffWithIccTag("simpletiff_icc_past", "",
+                                             /*icc_count=*/1000, /*offset=*/8);
+  TiffIndex past_index;
+  fd = -1;
+  ASSERT_TRUE(OpenTiff(past_path.string(), past_index, fd));
+  EXPECT_TRUE(past_index.Page(0).icc_profile.empty());
+  if (fd >= 0) {
+    aifocore::portable_close(fd);
+  }
+}
+
 }  // namespace
 }  // namespace simpletiff

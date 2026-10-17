@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "aifocore/platform/portability.h"
+#include "simpletiff/io_utils.h"
 
 namespace simpletiff {
 
@@ -66,6 +67,10 @@ TiffIndex& TiffIndex::operator=(TiffIndex&& other) noexcept {
     other.fd_ = -1;
   }
   return *this;
+}
+
+bool TiffIndex::ReadBlob(const BlobRef& blob, std::vector<uint8_t>& out) const {
+  return ReadBytes(fd_, file_size_, blob.offset, blob.size, out);
 }
 
 }  // namespace simpletiff

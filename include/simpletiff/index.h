@@ -190,6 +190,15 @@ struct SingleJpegRec {
 };
 
 /// Page header containing common metadata for a TIFF page/IFD
+/// Location of a tag value in the file, read on demand with
+/// TiffIndex::ReadBlob.
+struct BlobRef {
+  uint64_t offset = 0;  ///< File offset of the first byte
+  uint64_t size = 0;    ///< Size in bytes; 0 when the tag is absent
+
+  [[nodiscard]] bool empty() const { return size == 0; }
+};
+
 struct PageHeader {
   uint32_t ifd_index = 0;                     ///< Index of this IFD
   uint64_t ifd_offset = 0;                    ///< Offset of IFD in file
@@ -232,13 +241,15 @@ struct PageHeader {
   std::string host_computer;            ///< Tag 316 (HostComputer)
   std::string copyright;                ///< Tag 33432 (Copyright)
 
-  std::string xmp_packet;   ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
-                            ///< Stored verbatim (may contain embedded NULs).
-                            ///< Used by vendor formats such as Ventana BIF.
-  std::string icc_profile;  ///< Tag 34675 (0x8773, ICC Profile) raw bytes
-                            ///< (optional). Stored verbatim; usually present
-                            ///< only on the level-0 IFD but applies to the
-                            ///< whole pyramid. Consumed for color management.
+  std::string xmp_packet;  ///< Tag 700 (XMP / XMLPacket) raw bytes (optional).
+                           ///< Stored verbatim (may contain embedded NULs).
+                           ///< Used by vendor formats such as Ventana BIF.
+  BlobRef icc_profile;     ///< Tag 34675 (0x8773, ICC Profile): location of the
+                           ///< raw bytes, read with TiffIndex::ReadBlob. Not
+                           ///< loaded: scanners write profiles of several MB on
+                           ///< every IFD (13 MB on each of the 7 IFDs of Aperio
+                        ///< GT450 SVS). Usually applies to the whole pyramid.
+                        ///< Empty when absent, or too small to be a profile.
   std::optional<double> x_resolution;  ///< XResolution tag value
   std::optional<double> y_resolution;  ///< YResolution tag value
   std::optional<uint16_t>
@@ -300,6 +311,11 @@ class TiffIndex {
 
   /// Get file descriptor for reading
   [[nodiscard]] int Fd() const { return fd_; }
+
+  /// Reads the bytes of `blob` into `out`. Returns false if they cannot be
+  /// read.
+  [[nodiscard]] bool ReadBlob(const BlobRef& blob,
+                              std::vector<uint8_t>& out) const;
 
   /// Get page headers
   [[nodiscard]] std::span<const PageHeader> Pages() const { return pages_; }
