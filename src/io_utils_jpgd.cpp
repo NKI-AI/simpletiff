@@ -51,6 +51,10 @@ bool DecodeJpeg(DecodeContext& /*ctx*/, std::span<const uint8_t> jpeg_data,
   if (jpeg_data.empty()) {
     return false;
   }
+  // jpgd has no column crop; the whole image is always decoded.
+  if (options.out_crop_x != nullptr) {
+    *options.out_crop_x = 0;
+  }
 
   int actual_comps = 0;
   int width = 0;

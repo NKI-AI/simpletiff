@@ -38,6 +38,16 @@ struct JpegDecodeOptions {
   /// If true, treat YCbCr data as already RGB (skip YCbCr->RGB conversion).
   /// If false, allow the decoder to perform YCbCr->RGB conversion.
   bool treat_ycbcr_as_rgb = true;
+  /// If crop_width > 0, decode only columns [crop_x, crop_x + crop_width)
+  /// with jpeg_crop_scanline (libjpeg widens the range to iMCU boundaries).
+  /// The first decoded column is written to *out_crop_x, and out_width is the
+  /// decoded (cropped) width. Cropping is best-effort: with the jpgd backend,
+  /// a libjpeg without jpeg_crop_scanline (not libjpeg-turbo or mozjpeg), or
+  /// an out-of-range request, the whole image is decoded and *out_crop_x is
+  /// 0.
+  uint32_t crop_x = 0;
+  uint32_t crop_width = 0;
+  uint32_t* out_crop_x = nullptr;
 };
 
 /// Read bytes from file into vector using pread

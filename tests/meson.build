@@ -22,4 +22,11 @@ if gtest_dep.found()
       dependencies : [simpletiff_dep, gtest_dep])
     test(test_name, exe)
   endforeach
+
+  # Encodes its input with libjpeg, so only with the libjpeg backend.
+  if get_option('jpeg_decoder') == 'libjpeg'
+    exe = executable('jpeg_crop_test', '../src/jpeg_crop_test.cpp',
+      dependencies : [simpletiff_dep, jpeg_dep, gtest_dep])
+    test('jpeg_crop_test', exe)
+  endif
 endif
