@@ -15,6 +15,7 @@
 #include "simpletiff/jpeg2000.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -443,8 +444,41 @@ Result<void> PackInterleaved(const opj_image_t& image, bool file_big_endian,
   const uint32_t upb =
       (prec == 32) ? std::numeric_limits<uint32_t>::max() : ((1u << prec) - 1u);
 
+  // 8-bit: integer lookup tables with round-to-nearest, the YCbCr->RGB
+  // arithmetic of OpenSlide and other WSI readers, instead of the float
+  // multiply with truncation below, which differs from them by up to 1 grey
+  // level (e.g. on Aperio 33003 tiles).
+  struct YccTables {
+    std::array<int16_t, 256> r_cr{};
+    std::array<int32_t, 256> g_cb{};
+    std::array<int32_t, 256> g_cr{};
+    std::array<int16_t, 256> b_cb{};
+  };
+  static const YccTables kYcc = [] {
+    YccTables t;
+    for (int i = 0; i < 256; ++i) {
+      const double c = i - 128;
+      t.r_cr[i] = static_cast<int16_t>(std::lround(1.402 * c));
+      t.g_cb[i] =
+          static_cast<int32_t>(std::lround(65536 * (0.5 - 0.34414 * c)));
+      t.g_cr[i] = static_cast<int32_t>(std::lround(65536 * -0.71414 * c));
+      t.b_cb[i] = static_cast<int16_t>(std::lround(1.772 * c));
+    }
+    return t;
+  }();
+
   const auto sycc_to_rgb = [&](int y, int cb, int cr, uint32_t& out_r,
                                uint32_t& out_g, uint32_t& out_b) {
+    if (prec == 8) {
+      const uint8_t c0 = static_cast<uint8_t>(y);
+      const uint8_t c1 = static_cast<uint8_t>(cb);
+      const uint8_t c2 = static_cast<uint8_t>(cr);
+      const int g_chroma = (kYcc.g_cb[c1] + kYcc.g_cr[c2]) >> 16;
+      out_r = static_cast<uint32_t>(std::clamp(c0 + kYcc.r_cr[c2], 0, 255));
+      out_g = static_cast<uint32_t>(std::clamp(c0 + g_chroma, 0, 255));
+      out_b = static_cast<uint32_t>(std::clamp(c0 + kYcc.b_cb[c1], 0, 255));
+      return;
+    }
     // This is intentionally close to OpenJPEG's implementation:
     // cb -= offset; cr -= offset; and float-multiply + truncation.
     const int cb_off = cb - static_cast<int>(offset);
