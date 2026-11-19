@@ -133,6 +133,24 @@ bool DecodeJpeg(DecodeContext& ctx, std::span<const uint8_t> jpeg_data,
     return false;
   }
 
+  if (options.out_crop_x != nullptr) {
+    *options.out_crop_x = 0;
+  }
+#ifdef LIBJPEG_TURBO_VERSION
+  // jpeg_crop_scanline is a libjpeg-turbo extension (also in mozjpeg). With
+  // another libjpeg the whole image is decoded and *out_crop_x stays 0.
+  if (options.crop_width > 0 && options.crop_x < cinfo.output_width &&
+      options.crop_width <= cinfo.output_width - options.crop_x &&
+      options.crop_width < cinfo.output_width) {
+    JDIMENSION xoffset = options.crop_x;
+    JDIMENSION width = options.crop_width;
+    jpeg_crop_scanline(&cinfo, &xoffset, &width);
+    if (options.out_crop_x != nullptr) {
+      *options.out_crop_x = static_cast<uint32_t>(xoffset);
+    }
+  }
+#endif
+
   out_width = static_cast<int>(cinfo.output_width);
   out_height = static_cast<int>(cinfo.output_height);
 
