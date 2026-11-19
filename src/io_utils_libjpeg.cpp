@@ -124,9 +124,9 @@ bool DecodeJpeg(DecodeContext& ctx, std::span<const uint8_t> jpeg_data,
     cinfo.out_color_space = JCS_RGB;
   }
 
-  cinfo.dct_method = JDCT_IFAST;      // Fast integer DCT.
-  cinfo.do_fancy_upsampling = FALSE;  // Speed win on YCbCr 4:2:0.
-  cinfo.do_block_smoothing = FALSE;   // Disable smoothing for speed.
+  // The IDCT, upsampling and smoothing settings are left at libjpeg's
+  // defaults (JDCT_ISLOW, fancy upsampling), which jpeg_read_header resets on
+  // every call: the output then matches libtiff, OpenSlide and Pillow.
 
   if (jpeg_start_decompress(&cinfo) != TRUE) {
     jpeg_abort_decompress(&cinfo);
