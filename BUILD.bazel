@@ -184,6 +184,15 @@ cc_test(
 )
 
 cc_test(
+    name = "jpeg2000_ycbcr8_test",
+    srcs = ["tests/jpeg2000_ycbcr8_test.cpp"],
+    deps = [
+        ":simpletiff_lib",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "jpeg_libjpeg_defaults_test",
     srcs = ["tests/jpeg_libjpeg_defaults_test.cpp"],
     # Compares against libjpeg directly, so only with that backend.

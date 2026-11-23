@@ -15,6 +15,7 @@ if gtest_dep.found()
     'reader_test' : '../src/reader_test.cpp',
     'ccitt_test' : '../src/ccitt_test.cpp',
     'jpeg2000_sycc_pack_test' : 'jpeg2000_sycc_pack_test.cpp',
+    'jpeg2000_ycbcr8_test' : 'jpeg2000_ycbcr8_test.cpp',
   }
 
   # Compares against libjpeg directly, so only with that backend.
