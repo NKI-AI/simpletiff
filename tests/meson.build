@@ -18,6 +18,13 @@ if gtest_dep.found()
     'jpeg2000_ycbcr8_test' : 'jpeg2000_ycbcr8_test.cpp',
   }
 
+  # Compares against libjpeg directly, so only with that backend.
+  if get_option('jpeg_decoder') == 'libjpeg'
+    simpletiff_tests += {
+      'jpeg_libjpeg_defaults_test' : 'jpeg_libjpeg_defaults_test.cpp',
+    }
+  endif
+
   foreach test_name, test_src : simpletiff_tests
     exe = executable(test_name, test_src,
       dependencies : [simpletiff_dep, gtest_dep])
