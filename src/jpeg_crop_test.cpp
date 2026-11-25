@@ -15,14 +15,13 @@
 // Tests for the column crop of DecodeJpeg (libjpeg backend).
 
 #include <gtest/gtest.h>
+#include <jpeglib.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
-
-#include <jpeglib.h>
 
 #include "simpletiff/io_utils.h"
 #include "simpletiff/reader.h"
@@ -68,8 +67,8 @@ std::vector<uint8_t> EncodeTestJpeg(int width, int height) {
 TEST(JpegCropTest, CroppedColumnsMatchTheFullDecode) {
   const std::vector<uint8_t> jpeg = EncodeTestJpeg(640, 24);
   simpletiff::DecodeContext ctx;
-  const simpletiff::JpegDecodeOptions full_options = {
-      .treat_ycbcr_as_rgb = false};
+  const simpletiff::JpegDecodeOptions full_options = {.treat_ycbcr_as_rgb =
+                                                          false};
   int full_w = 0;
   int full_h = 0;
   std::vector<uint8_t> full;
@@ -77,8 +76,52 @@ TEST(JpegCropTest, CroppedColumnsMatchTheFullDecode) {
       simpletiff::DecodeJpeg(ctx, jpeg, full_w, full_h, full, full_options));
   ASSERT_EQ(full_w, 640);
 
-  uint32_t decoded_x = 12345;
-  const simpletiff::JpegDecodeOptions crop_options = {
+  // Crops on and off iMCU boundaries, and at both image edges.
+  const uint32_t offsets[] = {0, 1, 15, 16, 17, 200, 333, 600};
+  const uint32_t widths[] = {1, 37, 100};
+  for (const uint32_t crop_x : offsets) {
+    for (const uint32_t crop_width : widths) {
+      if (crop_x + crop_width > 640) {
+        continue;
+      }
+      SCOPED_TRACE(::testing::Message()
+                   << "crop " << crop_x << "+" << crop_width);
+      uint32_t decoded_x = 12345;
+      const simpletiff::JpegDecodeOptions crop_options = {
+          .treat_ycbcr_as_rgb = false,
+          .crop_x = crop_x,
+          .crop_width = crop_width,
+          .out_crop_x = &decoded_x,
+      };
+      int crop_w = 0;
+      int crop_h = 0;
+      std::vector<uint8_t> crop;
+      ASSERT_TRUE(simpletiff::DecodeJpeg(ctx, jpeg, crop_w, crop_h, crop,
+                                         crop_options));
+      ASSERT_EQ(crop_h, full_h);
+      // The decoded range covers the request, starting at or before it.
+      ASSERT_LE(decoded_x, crop_x);
+      ASSERT_GE(decoded_x + static_cast<uint32_t>(crop_w), crop_x + crop_width);
+      // The requested columns are identical to the full decode (with fancy
+      // upsampling, libjpeg's default, the outermost decoded ones need not be).
+      for (int y = 0; y < crop_h; ++y) {
+        for (uint32_t x = crop_x; x < crop_x + crop_width; ++x) {
+          for (int c = 0; c < 3; ++c) {
+            const size_t full_i = (static_cast<size_t>(y) * full_w + x) * 3 + c;
+            const size_t crop_i =
+                (static_cast<size_t>(y) * crop_w + (x - decoded_x)) * 3 + c;
+            ASSERT_EQ(crop[crop_i], full[full_i])
+                << "row " << y << " column " << x << " channel " << c;
+          }
+        }
+      }
+    }
+  }
+
+#ifdef LIBJPEG_TURBO_VERSION
+  // A narrow crop really decodes fewer columns.
+  uint32_t decoded_x = 0;
+  const simpletiff::JpegDecodeOptions narrow = {
       .treat_ycbcr_as_rgb = false,
       .crop_x = 200,
       .crop_width = 100,
@@ -87,23 +130,9 @@ TEST(JpegCropTest, CroppedColumnsMatchTheFullDecode) {
   int crop_w = 0;
   int crop_h = 0;
   std::vector<uint8_t> crop;
-  ASSERT_TRUE(
-      simpletiff::DecodeJpeg(ctx, jpeg, crop_w, crop_h, crop, crop_options));
-  ASSERT_EQ(crop_h, full_h);
-  // The decoded range covers the request, starting at or before it.
-  ASSERT_LE(decoded_x, 200u);
-  ASSERT_GE(decoded_x + static_cast<uint32_t>(crop_w), 300u);
-#ifdef LIBJPEG_TURBO_VERSION
+  ASSERT_TRUE(simpletiff::DecodeJpeg(ctx, jpeg, crop_w, crop_h, crop, narrow));
   EXPECT_LT(crop_w, full_w);
 #endif
-  for (int y = 0; y < crop_h; ++y) {
-    for (int x = 0; x < crop_w * 3; ++x) {
-      const size_t full_i =
-          (static_cast<size_t>(y) * full_w + decoded_x) * 3 + x;
-      const size_t crop_i = static_cast<size_t>(y) * crop_w * 3 + x;
-      ASSERT_EQ(crop[crop_i], full[full_i]) << "row " << y << " byte " << x;
-    }
-  }
 }
 
 TEST(JpegCropTest, OutOfRangeCropDecodesTheWholeImage) {

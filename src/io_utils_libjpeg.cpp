@@ -20,6 +20,7 @@
 
 #include <jpeglib.h>
 
+#include <algorithm>
 #include <span>
 #include <utility>
 #include <vector>
@@ -142,8 +143,18 @@ bool DecodeJpeg(DecodeContext& ctx, std::span<const uint8_t> jpeg_data,
   if (options.crop_width > 0 && options.crop_x < cinfo.output_width &&
       options.crop_width <= cinfo.output_width - options.crop_x &&
       options.crop_width < cinfo.output_width) {
-    JDIMENSION xoffset = options.crop_x;
-    JDIMENSION width = options.crop_width;
+    // jpeg_crop_scanline treats the crop edges as image edges, so with fancy
+    // upsampling (libjpeg's default) the outermost decoded columns differ from
+    // a full decode. Widen the crop by two iMCUs on each side so every
+    // requested column is upsampled with its real neighbours.
+    const JDIMENSION margin = 2 * static_cast<JDIMENSION>(
+                                      cinfo.max_h_samp_factor) *
+                              static_cast<JDIMENSION>(DCTSIZE);
+    const JDIMENSION x0 = options.crop_x > margin ? options.crop_x - margin : 0;
+    const JDIMENSION x1 = std::min<JDIMENSION>(
+        cinfo.output_width, options.crop_x + options.crop_width + margin);
+    JDIMENSION xoffset = x0;
+    JDIMENSION width = x1 - x0;
     jpeg_crop_scanline(&cinfo, &xoffset, &width);
     if (options.out_crop_x != nullptr) {
       *options.out_crop_x = static_cast<uint32_t>(xoffset);
