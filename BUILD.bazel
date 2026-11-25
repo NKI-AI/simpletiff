@@ -138,6 +138,21 @@ cc_test(
     ],
 )
 
+# Encodes its input with libjpeg, so only with the libjpeg backend.
+cc_test(
+    name = "jpeg_crop_test",
+    srcs = ["src/jpeg_crop_test.cpp"],
+    target_compatible_with = select({
+        ":use_jpgd": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    deps = [
+        ":simpletiff_lib",
+        "@googletest//:gtest_main",
+        "@libjpeg_turbo//:jpeg",
+    ],
+)
+
 cc_test(
     name = "lzw_test",
     srcs = ["src/lzw_test.cpp"],
